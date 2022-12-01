@@ -1,24 +1,3 @@
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: mario
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: mario
-#   template:
-#     metadata:
-#       labels:
-#         app: mario
-#     spec:
-#       containers:
-#       - name: mario
-#         image: nandocloud/docker-supermario:latest
-#         ports:
-#         - containerPort: 8080
-
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
