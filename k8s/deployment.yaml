@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mario
+  name: gamer-mario
   namespace: gamer-mario
 spec:
   replicas: 2
   selector:
     matchLabels:
-      run: mario
+      run: gamer-mario
   template:
     metadata:
       labels:
-        run: mario
+        run: gamer-mario
     spec:
       containers:
-      - name: mario
+      - name: gamer-mario
         image: nandocloud/mariobrosgamer:latest
         ports:
           - containerPort: 8080

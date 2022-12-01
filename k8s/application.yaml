@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-gamer-mario-v1 # nome da aplicação 
+  name: app-gamer-mario # nome da aplicação 
   namespace: argocd 
 spec:
   project: default
