@@ -4,7 +4,7 @@ metadata:
   name: gamer-mario
   namespace: gamer-mario
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       run: gamer-mario
@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         run: gamer-mario
+        app: app-deploy
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port:   '80'  
     spec:
       containers:
       - name: gamer-mario
