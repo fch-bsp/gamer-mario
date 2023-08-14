@@ -4,7 +4,7 @@ metadata:
   name: gamer-mario
   namespace: gamer-mario
 spec:
-  replicas: 60
+  replicas: 2
   selector:
     matchLabels:
       run: gamer-mario
