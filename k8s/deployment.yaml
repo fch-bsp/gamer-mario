@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gamer-mario
+  namespace: gamer-mario
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: gamer-mario
+  template:
+    metadata:
+      labels:
+        run: gamer-mario
+    spec:
+      containers:
+      - name: gamer-mario
+        image: nandocloud/mariobrosgamer:latest
+        ports:
+          - containerPort: 8080
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 200m
+        securityContext:
+          allowPrivilegeEscalation: false

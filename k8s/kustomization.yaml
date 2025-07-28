@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- deployment.yaml
+- service.yaml
+
+namespace: gamer-mario
+images:
+- name: gamer-mario
+  newName: nandocloud/mariobrosgamer:latest
+  newTag: 144d861583522972c21f749bb2377a88b6d3241b
