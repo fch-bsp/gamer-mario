@@ -121,7 +121,7 @@ aws cloudformation deploy \
         ImageUri=$IMAGE_URI \
         TaskCpu=512 \
         TaskMemory=1024 \
-    --capabilities CAPABILITY_IAM \
+    --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
     --profile $PROFILE \
     --region $REGION
 
@@ -153,6 +153,48 @@ for i in {1..30}; do
     sleep 10
 done
 
+# ETAPA 6: Configurar e Testar X-Ray
+echo -e "\n${GREEN}🔍 ETAPA 6: Configurando X-Ray Tracing${NC}"
+echo -e "${BLUE}------------------------------------${NC}"
+
+echo -e "${YELLOW}📡 Gerando tráfego inicial para ativar X-Ray...${NC}"
+
+# Gerar tráfego inicial com traces X-Ray
+for i in {1..5}; do
+    TRACE_ID="1-$(date +%s)-$(openssl rand -hex 12)"
+    echo -e "${BLUE}   Trace $i: $TRACE_ID${NC}"
+    
+    curl -s -H "X-Amzn-Trace-Id: Root=$TRACE_ID" \
+         -H "User-Agent: Mario-Deploy-XRay/1.0" \
+         "$ALB_URL/" > /dev/null || true
+    
+    curl -s -H "X-Amzn-Trace-Id: Root=$TRACE_ID" \
+         -H "User-Agent: Mario-Deploy-XRay/1.0" \
+         "$ALB_URL/health" > /dev/null || true
+    
+    sleep 1
+done
+
+echo -e "${GREEN}✅ X-Ray configurado e traces iniciais enviados${NC}"
+
+# Verificar status do X-Ray
+echo -e "${YELLOW}🔍 Verificando status do X-Ray...${NC}"
+
+# Verificar containers
+TASK_ARN=$(aws ecs list-tasks --cluster mario-game-$ENVIRONMENT-cluster --service-name mario-game-$ENVIRONMENT-service --profile $PROFILE --region $REGION --query 'taskArns[0]' --output text 2>/dev/null || echo "")
+
+if [ ! -z "$TASK_ARN" ] && [ "$TASK_ARN" != "None" ]; then
+    XRAY_STATUS=$(aws ecs describe-tasks --cluster mario-game-$ENVIRONMENT-cluster --tasks $TASK_ARN --profile $PROFILE --region $REGION --query 'tasks[0].containers[?name==`xray-daemon`].lastStatus' --output text 2>/dev/null || echo "NOT_FOUND")
+    
+    if [ "$XRAY_STATUS" = "RUNNING" ]; then
+        echo -e "${GREEN}✅ X-Ray Daemon: RUNNING${NC}"
+    else
+        echo -e "${YELLOW}⚠️  X-Ray Daemon: $XRAY_STATUS${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Não foi possível verificar status do X-Ray daemon${NC}"
+fi
+
 # Resultado final
 echo -e "\n${PURPLE}🎉 DEPLOY COMPLETO REALIZADO COM SUCESSO! 🎉${NC}"
 echo -e "${BLUE}============================================${NC}"
@@ -161,10 +203,22 @@ echo -e "${YELLOW}   $ALB_URL${NC}"
 echo -e "${GREEN}🖼️  Imagem: $IMAGE_URI${NC}"
 echo -e "${GREEN}📊 Ambiente: $ENVIRONMENT${NC}"
 
+echo -e "\n${BLUE}🔍 X-Ray Tracing:${NC}"
+echo -e "   🔍 Traces: https://console.aws.amazon.com/xray/home?region=$REGION#/traces"
+echo -e "   🗺️  Service Map: https://console.aws.amazon.com/xray/home?region=$REGION#/service-map"
+echo -e "${YELLOW}   💡 Aguarde 5-10 minutos para ver os traces no console${NC}"
+
 echo -e "\n${BLUE}📋 Para monitorar:${NC}"
 echo -e "   aws ecs describe-services --cluster mario-game-$ENVIRONMENT-cluster --services mario-game-$ENVIRONMENT-service --profile $PROFILE --region $REGION"
 
-echo -e "\n${BLUE}📋 Para destruir tudo:${NC}"
-echo -e "   ./scripts/destroy.sh $ENVIRONMENT"
+echo -e "\n${BLUE}🔧 Para gerar mais traces X-Ray:${NC}"
+echo -e "   for i in {1..10}; do"
+echo -e "     TRACE_ID=\"1-\$(date +%s)-\$(openssl rand -hex 12)\""
+echo -e "     curl -H \"X-Amzn-Trace-Id: Root=\$TRACE_ID\" $ALB_URL/"
+echo -e "     sleep 2"
+echo -e "   done"
 
-echo -e "\n${GREEN}🎮 Divirta-se jogando Super Mario Bros na AWS! 🎮${NC}"
+echo -e "\n${BLUE}📋 Para destruir tudo:${NC}"
+echo -e "   ./scripts/destroy.sh $ENVIRONMENT yes"
+
+echo -e "\n${GREEN}🎮 Divirta-se jogando Super Mario Bros na AWS com X-Ray! 🎮${NC}"

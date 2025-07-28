@@ -30,14 +30,15 @@ echo -e "${BLUE}====================================${NC}"
 if [ "$CONFIRM" != "yes" ]; then
     echo -e "${RED}⚠️  ATENÇÃO: Esta operação irá DESTRUIR todos os recursos AWS!${NC}"
     echo -e "${YELLOW}📋 Recursos que serão removidos:${NC}"
-    echo -e "   • ECS Cluster e Services"
+    echo -e "   • ECS Cluster e Services (com X-Ray daemon)"
     echo -e "   • Application Load Balancer"
     echo -e "   • VPC, Subnets, NAT Gateways"
     echo -e "   • Security Groups"
-    echo -e "   • CloudWatch Logs"
+    echo -e "   • CloudWatch Logs (incluindo X-Ray logs)"
     echo -e "   • ECR Repository e imagens"
-    echo -e "   • IAM Roles"
+    echo -e "   • IAM Roles (incluindo permissões X-Ray)"
     echo -e "   • Imagens Docker locais"
+    echo -e "   • Traces X-Ray (serão mantidos por 30 dias)"
     echo ""
     echo -e "${RED}💰 Isso irá parar TODOS os custos relacionados ao projeto${NC}"
     echo ""
@@ -119,8 +120,50 @@ else
     echo -e "${YELLOW}⚠️  ECR repository não encontrado${NC}"
 fi
 
-# ETAPA 4: Limpeza Local
-echo -e "\n${GREEN}🗑️  ETAPA 4: Limpeza Local${NC}"
+# ETAPA 4: Limpeza X-Ray
+echo -e "\n${GREEN}🔍 ETAPA 4: Limpeza X-Ray${NC}"
+echo -e "${BLUE}------------------------${NC}"
+
+echo -e "${YELLOW}📊 Verificando traces X-Ray...${NC}"
+
+# Verificar se há traces recentes (últimas 24 horas)
+START_TIME=$(date -d '24 hours ago' -u +%Y-%m-%dT%H:%M:%S)
+END_TIME=$(date -u +%Y-%m-%dT%H:%M:%S)
+
+TRACE_COUNT=$(aws xray get-trace-summaries \
+    --start-time $START_TIME \
+    --end-time $END_TIME \
+    --profile $PROFILE \
+    --region $REGION \
+    --query 'TraceSummaries | length(@)' \
+    --output text 2>/dev/null || echo "0")
+
+if [ "$TRACE_COUNT" -gt 0 ]; then
+    echo -e "${GREEN}✅ $TRACE_COUNT traces encontrados nas últimas 24h${NC}"
+    echo -e "${YELLOW}💡 Traces X-Ray são mantidos por 30 dias automaticamente${NC}"
+    echo -e "${BLUE}   Console X-Ray: https://console.aws.amazon.com/xray/home?region=$REGION#/traces${NC}"
+else
+    echo -e "${YELLOW}ℹ️  Nenhum trace X-Ray encontrado nas últimas 24h${NC}"
+fi
+
+echo -e "${YELLOW}🔧 Verificando sampling rules customizadas...${NC}"
+CUSTOM_RULES=$(aws xray get-sampling-rules \
+    --profile $PROFILE \
+    --region $REGION \
+    --query 'SamplingRuleRecords[?SamplingRule.RuleName != `Default`].SamplingRule.RuleName' \
+    --output text 2>/dev/null || echo "")
+
+if [ ! -z "$CUSTOM_RULES" ] && [ "$CUSTOM_RULES" != "None" ]; then
+    echo -e "${YELLOW}⚠️  Sampling rules customizadas encontradas: $CUSTOM_RULES${NC}"
+    echo -e "${BLUE}   Estas não serão removidas automaticamente${NC}"
+else
+    echo -e "${GREEN}✅ Apenas sampling rules padrão encontradas${NC}"
+fi
+
+echo -e "${GREEN}✅ Verificação X-Ray concluída${NC}"
+
+# ETAPA 5: Limpeza Local
+echo -e "\n${GREEN}🗑️  ETAPA 5: Limpeza Local${NC}"
 echo -e "${BLUE}---------------------------${NC}"
 
 echo -e "${YELLOW}🐳 Removendo imagens Docker locais...${NC}"
@@ -138,8 +181,8 @@ done
 echo -e "${YELLOW}🧹 Executando limpeza geral do Docker...${NC}"
 docker system prune -f >/dev/null 2>&1 || true
 
-# ETAPA 5: Verificação Final
-echo -e "\n${GREEN}🔍 ETAPA 5: Verificação Final${NC}"
+# ETAPA 6: Verificação Final
+echo -e "\n${GREEN}🔍 ETAPA 6: Verificação Final${NC}"
 echo -e "${BLUE}-----------------------------${NC}"
 echo -e "${YELLOW}📋 Verificando se todos os recursos foram removidos...${NC}"
 

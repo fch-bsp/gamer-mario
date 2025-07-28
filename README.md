@@ -6,9 +6,15 @@ Este projeto contém o jogo Super Mario Bros configurado para deploy no Amazon E
 
 ```
 Internet → ALB → ECS Fargate Tasks (Private Subnets) → ECR
-                      ↓
-                CloudWatch Logs
+                      ↓                    ↓
+                CloudWatch Logs      AWS X-Ray Tracing
 ```
+
+### 🔍 **X-Ray Tracing Incluído**
+- **Rastreamento distribuído** de todas as requisições
+- **Service Map** visual da arquitetura
+- **Análise de performance** em tempo real
+- **Detecção automática** de gargalos
 
 ## 📁 Estrutura do Projeto
 
@@ -17,16 +23,18 @@ mario-ecs/
 ├── app/                           # Arquivos da aplicação web
 ├── docker/                       # Configurações Docker
 │   ├── Dockerfile                # Dockerfile otimizado (Nginx Alpine)
-│   ├── nginx.conf                # Configuração do Nginx
-│   └── .dockerignore             # Arquivos ignorados no build
+│   └── nginx.conf                # Configuração do Nginx com X-Ray
 ├── cloudformation/               # Templates CloudFormation (IaC)
 │   ├── infrastructure/           # VPC, ALB, Security Groups
 │   │   └── vpc-alb.yaml
 │   └── ecs/                      # ECS Cluster, Tasks, Services
 │       └── ecs-cluster.yaml
-├── scripts/                      # Scripts de automação (SIMPLIFICADOS)
+├── scripts/                      # Scripts principais
 │   ├── deploy.sh                 # 🚀 Deploy completo (tudo em um)
-│   └── destroy.sh                # 🗑️ Destruir tudo (limpeza total)
+│   ├── destroy.sh                # 🗑️ Destruir tudo (limpeza total)
+│   └── utils/                    # Scripts auxiliares (troubleshooting)
+├── docs/                         # Documentação
+│   └── XRAY.md                   # Guia completo do X-Ray
 └── README.md                     # Este arquivo
 ```
 
@@ -50,6 +58,27 @@ cd mario-ecs
 # Exemplos:
 ./scripts/destroy.sh prod yes
 ./scripts/destroy.sh dev yes
+```
+
+## 🔍 X-Ray Tracing (Incluído Automaticamente)
+
+O X-Ray é configurado automaticamente durante o deploy e fornece:
+
+- **🔍 Traces**: https://console.aws.amazon.com/xray/home?region=us-east-1#/traces
+- **🗺️ Service Map**: https://console.aws.amazon.com/xray/home?region=us-east-1#/service-map
+- **📊 Analytics**: https://console.aws.amazon.com/xray/home?region=us-east-1#/analytics
+
+### 🧪 Gerar Traces Manualmente
+```bash
+# Obter URL da aplicação
+ALB_URL=$(aws cloudformation describe-stacks --stack-name mario-game-prod-infrastructure --profile bedhock --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ApplicationLoadBalancerURL`].OutputValue' --output text)
+
+# Gerar traces
+for i in {1..10}; do
+  TRACE_ID="1-$(date +%s)-$(openssl rand -hex 12)"
+  curl -H "X-Amzn-Trace-Id: Root=$TRACE_ID" $ALB_URL/
+  sleep 2
+done
 ```
 
 ### 📋 Comandos Simplificados
