@@ -1,0 +1,60 @@
+# Arquivos sensíveis - NÃO COMMITAR
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.local
+.env.production
+.env.staging
+
+# Credenciais AWS
+.aws/
+aws-credentials
+credentials
+config
+
+# Logs
+*.log
+logs/
+*.out
+
+# Arquivos temporários
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Backup dos scripts antigos (muito grande)
+scripts-backup/
+
+# Node modules (se houver)
+node_modules/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de sistema
+*~
+.directory
+
+# Arquivos de build temporários
+build/
+dist/
+target/
+
+# Certificados
+*.crt
+*.cer
+*.der
+
+# Arquivos de configuração local
+local.conf
+local.yaml
+local.json
